@@ -113,7 +113,8 @@ void AMyEarthbender::Fire()
 		// Get the camera transform.
 		const FRotator SpawnRotation = GetControlRotation();
 		// MuzzleOffset is in camera space, so transform it to world space before offsetting from the character location to find the final muzzle position
-		const FVector SpawnLocation = (GetWorld()->GetFirstPlayerController()->GetPawn()->GetActorLocation() + SpawnRotation.RotateVector(FVector(100.0f, 0.0f, 0.0f)));
+		//const FVector SpawnLocation = (GetWorld()->GetFirstPlayerController()->GetPawn()->GetActorLocation() + SpawnRotation.RotateVector(FVector(100.0f, 0.0f, 0.0f)));
+		const FVector SpawnLocation = (FVector(GetWorld()->GetFirstPlayerController()->GetPawn()->GetActorLocation().X, GetWorld()->GetFirstPlayerController()->GetPawn()->GetActorLocation().Y, 0.0f) + SpawnRotation.RotateVector(FVector(100.0f, 100.0f, 0.0f)));
 		//GetActorEyesViewPoint(CameraLocation, CameraRotation);
 
 		// Log the camera location and rotation.
@@ -129,7 +130,7 @@ void AMyEarthbender::Fire()
 
 		// Skew the aim to be slightly upwards. 
 		FRotator MuzzleRotation = SpawnRotation;
-		//MuzzleRotation.Pitch += 10.0f;
+		MuzzleRotation.Pitch += 10.0f;
 
 		UWorld* World = GetWorld();
 		if (World)

@@ -27,7 +27,7 @@ AMyRock::AMyRock()
 		// Use this component to drive this projectile's movement.
 		ProjectileMovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovementComponent"));
 		ProjectileMovementComponent->SetUpdatedComponent(CollisionComponent);
-		ProjectileMovementComponent->InitialSpeed = 0.0f;
+		ProjectileMovementComponent->InitialSpeed = 3000.0f;
 		ProjectileMovementComponent->MaxSpeed = 3000.0f;
 		ProjectileMovementComponent->bRotationFollowsVelocity = true;
 		ProjectileMovementComponent->bShouldBounce = true;
@@ -55,7 +55,7 @@ AMyRock::AMyRock()
 	}
 
 	// Delete the projectile after 3 seconds.
-	InitialLifeSpan = 3.0f;
+	InitialLifeSpan = 4.0f;
 }
 
 // Called when the game starts or when spawned
@@ -70,11 +70,27 @@ void AMyRock::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	if (ProjectileMeshComponent->GetComponentLocation().Z <= 150.0f)
+	{
+		ProjectileMovementComponent->Velocity = FVector(ProjectileMovementComponent->Velocity.X, ProjectileMovementComponent->Velocity.Y, 500.0f);
+	}
+	else
+	{
+		atHeight = true;
+		ProjectileMovementComponent->Velocity = FVector(ProjectileMovementComponent->Velocity.X, ProjectileMovementComponent->Velocity.Y, 0.0f);
+	}
+	
+	
+		
 }
 
 // Function that initializes the projectile's velocity in the shoot direction.
 void AMyRock::FireInDirection(const FVector& ShootDirection)
 {
-	ProjectileMovementComponent->Velocity = ShootDirection * ProjectileMovementComponent->InitialSpeed;
+	
+	if (atHeight)
+	{
+		ProjectileMovementComponent->Velocity = ShootDirection * ProjectileMovementComponent->InitialSpeed;
+	}
 }
 
