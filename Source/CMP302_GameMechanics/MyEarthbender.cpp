@@ -1,0 +1,177 @@
+// Fill out your copyright notice in the Description page of Project Settings.
+
+
+#include "MyEarthbender.h"
+
+// Sets default values
+AMyEarthbender::AMyEarthbender()
+{
+	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+	PrimaryActorTick.bCanEverTick = true;
+
+	// Create First Person Camera
+	FPSCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
+	check(FPSCameraComponent != nullptr);
+	// Create Third Person Camera
+	TPSCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("ThirdPersonCamera"));
+	//	check(TPSCameraComponent != nullptr);
+
+		// Attach the camera component to our capsule component.
+	FPSCameraComponent->SetupAttachment(CastChecked<USceneComponent, UCapsuleComponent>(GetCapsuleComponent()));
+	TPSCameraComponent->SetupAttachment(CastChecked<USceneComponent, UCapsuleComponent>(GetCapsuleComponent()));
+
+	// Set camera just above the eye level of the model (hopefully)
+	FPSCameraComponent->SetRelativeLocation(FVector(20.0f, 0.0f, 30.0f + BaseEyeHeight));
+	// Allow the user to control camera rotation
+	FPSCameraComponent->bUsePawnControlRotation = true;
+
+	// Set third person camera to behind the model and at eye level
+	TPSCameraComponent->SetRelativeLocation(FVector(-150.0f, 10.0f, 65.0f));
+	// Allow the user to control camera rotation
+	TPSCameraComponent->bUsePawnControlRotation = true;
+
+	//First Person Arm Mesh
+	FPSArms = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FirstPersonArms"));
+	check(FPSArms != nullptr);
+
+	// Make only the owning actor see the arms
+	FPSArms->SetOnlyOwnerSee(true);
+	// Attach Arms to camera
+	FPSArms->SetupAttachment(FPSCameraComponent);
+	FPSArms->SetRelativeLocation(FVector(165, 0, -85));
+	FPSArms->SetRelativeRotation(FRotator(-55.0f, -20.0f, -110.0f));
+	FPSArms->bCastDynamicShadow = false;
+	FPSArms->CastShadow = false;
+}
+
+// Called when the game starts or when spawned
+void AMyEarthbender::BeginPlay()
+{
+	Super::BeginPlay();
+
+	check(GEngine != nullptr);
+
+	// Display a debug message for five seconds. 
+	// The -1 "Key" value argument prevents the message from being updated or refreshed.
+	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("EarthBender Working!"));
+
+}
+
+// Called every frame
+void AMyEarthbender::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+}
+
+// Called to bind functionality to input
+void AMyEarthbender::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+{
+	Super::SetupPlayerInputComponent(PlayerInputComponent);
+
+	// Create Player movement bindings
+	PlayerInputComponent->BindAxis("MoveForward", this, &AMyEarthbender::MoveForward);
+	PlayerInputComponent->BindAxis("MoveRight", this, &AMyEarthbender::MoveRight);
+	// Create player mouse movement 
+	PlayerInputComponent->BindAxis("LookX", this, &AMyEarthbender::AddControllerYawInput);
+	PlayerInputComponent->BindAxis("LookY", this, &AMyEarthbender::AddControllerPitchInput);
+	// Create Action Bindings
+	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &AMyEarthbender::StartJump);
+	PlayerInputComponent->BindAction("Jump", IE_Released, this, &AMyEarthbender::StopJump);
+	// Camera Toggle
+	PlayerInputComponent->BindAction("ChangePerspective", IE_Pressed, this, &AMyEarthbender::ChangePerspective);
+	// Fire command
+	PlayerInputComponent->BindAction("Shoot", IE_Pressed, this, &AMyEarthbender::Fire);
+
+}
+
+void AMyEarthbender::ChangePerspective()
+{
+	isFirstPerson = !isFirstPerson; // Toggle the camera state
+
+	if (isFirstPerson)
+	{
+		FPSCameraComponent->SetActive(true);
+		TPSCameraComponent->SetActive(false);
+		// Hide model in first person
+		//GetMesh()->SetOwnerNoSee(true);
+	}
+	else
+	{
+		FPSCameraComponent->SetActive(false);
+		TPSCameraComponent->SetActive(true);
+		// show model in third person
+		//GetMesh()->SetOwnerNoSee(false);
+	}
+}
+
+void AMyEarthbender::Fire()
+{
+	// Attempt to fire a projectile.
+	if (ProjectileClass)
+	{
+		// Get the camera transform.
+		const FRotator SpawnRotation = GetControlRotation();
+		// MuzzleOffset is in camera space, so transform it to world space before offsetting from the character location to find the final muzzle position
+		const FVector SpawnLocation = (GetWorld()->GetFirstPlayerController()->GetPawn()->GetActorLocation() + SpawnRotation.RotateVector(FVector(100.0f, 0.0f, 0.0f)));
+		//GetActorEyesViewPoint(CameraLocation, CameraRotation);
+
+		// Log the camera location and rotation.
+		//UE_LOG(LogTemp, Warning, TEXT("CameraLocation: %s"), *CameraLocation.ToString());
+		//UE_LOG(LogTemp, Warning, TEXT("CameraRotation: %s"), *CameraRotation.ToString());
+
+		// Set MuzzleOffset to spawn projectiles slightly in front of the camera.
+		MuzzleOffset.Set(0.0f, 0.0f, 0.0f);
+
+		// Transform MuzzleOffset from camera space to world space.
+		//FVector MuzzleLocation = CameraLocation + FTransform(CameraRotation).TransformVector(MuzzleOffset);
+		//UE_LOG(LogTemp, Warning, TEXT("MuzzleLocation: %s"), *MuzzleLocation.ToString());
+
+		// Skew the aim to be slightly upwards. 
+		FRotator MuzzleRotation = SpawnRotation;
+		//MuzzleRotation.Pitch += 10.0f;
+
+		UWorld* World = GetWorld();
+		if (World)
+		{
+			FActorSpawnParameters SpawnParams;
+			SpawnParams.Owner = this;
+			SpawnParams.Instigator = GetInstigator();
+
+			// Spawn the projectile at the muzzle.
+			AMyRock* Projectile = World->SpawnActor<AMyRock>(ProjectileClass, SpawnLocation, SpawnRotation, SpawnParams);
+			if (Projectile)
+			{
+				// Set the projectile's initial trajectory.
+				FVector LaunchDirection = MuzzleRotation.Vector();
+				Projectile->FireInDirection(LaunchDirection);
+			}
+
+		}
+	}
+}
+
+UFUNCTION() void AMyEarthbender::MoveForward(float val)
+{
+	// Find forward and record
+	FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::X);
+	AddMovementInput(GetActorForwardVector() * val);
+}
+
+UFUNCTION() void AMyEarthbender::MoveRight(float val)
+{
+	// Find forward and record
+	FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::Y);
+	AddMovementInput(Direction, val);
+}
+
+UFUNCTION() void AMyEarthbender::StartJump()
+{
+	bPressedJump = true;
+}
+
+UFUNCTION() void AMyEarthbender::StopJump()
+{
+	bPressedJump = false;
+}
+
