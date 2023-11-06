@@ -9,6 +9,8 @@
 #include "Engine/Engine.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/TimelineComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "PhysicsEngine/PhysicsHandleComponent.h"
 #include "MyRock.h"
 #include "MyEarthbender.generated.h"
 UCLASS()
@@ -30,17 +32,20 @@ protected:
 
 public:
 	// FPS camera.
-	UPROPERTY(EditAnywhere) UCameraComponent* FPSCameraComponent;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) UCameraComponent* FPSCameraComponent;
 	// TPS Camera
-	UPROPERTY(EditAnywhere) UCameraComponent* TPSCameraComponent;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) UCameraComponent* TPSCameraComponent;
 	// Perspective Change boolean
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) bool isFirstPerson = true;
 	// First-Person Arms
 	UPROPERTY(VisibleDefaultsOnly, Category = Mesh) USkeletalMeshComponent* FPSArms;
 	// Gun muzzle offset from the camera location.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay) FVector MuzzleOffset;
+	// Grab Range for hold function based off gravity gun lab.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) float GrabRange = 1500;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) bool bIsHoldingRock = false;
 
-	//AMyRock* SpawnedRock;
+	AMyRock* HeldRock;
 
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -57,7 +62,12 @@ public:
 	UFUNCTION() void StopJump();
 	// Function for toggle perspective
 	UFUNCTION() void ChangePerspective();
-	// Function that handles spawning projectiles.
-	UFUNCTION() void Fire();
+	// Function that handles spawning and holding projectiles.
+	UFUNCTION() void CreateRock();
+	// Function that handles shooting projectiles.
+	UFUNCTION() void ThrowRock();
+
+	UFUNCTION(BlueprintCallable)
+		bool LineTraceMethod(FHitResult& OutHit);
 
 };

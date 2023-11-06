@@ -6,6 +6,7 @@
 #include "Engine/StaticMeshActor.h"
 #include "Components/SphereComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
+#include "PhysicsEngine/PhysicsHandleComponent.h"
 #include "MyRock.generated.h"
 UCLASS()
 class CMP302_GAMEMECHANICS_API AMyRock : public AActor
@@ -34,6 +35,5 @@ public:
 	UPROPERTY(VisibleDefaultsOnly, Category = Projectile) UStaticMeshComponent* ProjectileMeshComponent;
 	// Projectile material
 	UPROPERTY(VisibleDefaultsOnly, Category = Movement) UMaterialInstanceDynamic* ProjectileMaterialInstance;
-	float height = -10.0f;
 	bool atHeight = false;
 };

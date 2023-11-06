@@ -27,7 +27,7 @@ AMyRock::AMyRock()
 		// Use this component to drive this projectile's movement.
 		ProjectileMovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovementComponent"));
 		ProjectileMovementComponent->SetUpdatedComponent(CollisionComponent);
-		ProjectileMovementComponent->InitialSpeed = 3000.0f;
+		ProjectileMovementComponent->InitialSpeed = 0.0f;
 		ProjectileMovementComponent->MaxSpeed = 3000.0f;
 		ProjectileMovementComponent->bRotationFollowsVelocity = true;
 		ProjectileMovementComponent->bShouldBounce = true;
@@ -51,11 +51,12 @@ AMyRock::AMyRock()
 		}
 		ProjectileMeshComponent->SetMaterial(0, ProjectileMaterialInstance);
 		//ProjectileMeshComponent->SetRelativeScale3D(FVector(0.09f, 0.09f, 0.09f));
+		ProjectileMeshComponent->SetSimulatePhysics(true);
 		ProjectileMeshComponent->SetupAttachment(RootComponent);
 	}
 
 	// Delete the projectile after 3 seconds.
-	InitialLifeSpan = 4.0f;
+	//InitialLifeSpan = 4.0f;
 }
 
 // Called when the game starts or when spawned
@@ -70,26 +71,26 @@ void AMyRock::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (ProjectileMeshComponent->GetComponentLocation().Z <= 150.0f)
+	if (ProjectileMeshComponent->GetComponentLocation().Z <= 125.0f)
 	{
-		ProjectileMovementComponent->Velocity = FVector(ProjectileMovementComponent->Velocity.X, ProjectileMovementComponent->Velocity.Y, 500.0f);
+	//	ProjectileMovementComponent->Velocity = FVector(ProjectileMovementComponent->Velocity.X, ProjectileMovementComponent->Velocity.Y, 500.0f);
 	}
 	else
 	{
 		atHeight = true;
-		ProjectileMovementComponent->Velocity = FVector(ProjectileMovementComponent->Velocity.X, ProjectileMovementComponent->Velocity.Y, 0.0f);
+	//	ProjectileMovementComponent->Velocity = FVector(ProjectileMovementComponent->Velocity.X, ProjectileMovementComponent->Velocity.Y, 0.0f);
 	}
-	
-	
-		
+
 }
 
 // Function that initializes the projectile's velocity in the shoot direction.
 void AMyRock::FireInDirection(const FVector& ShootDirection)
 {
-	
+	atHeight = true;
 	if (atHeight)
 	{
+		ProjectileMeshComponent->SetSimulatePhysics(false);
+		ProjectileMovementComponent->InitialSpeed = 3000.0f;
 		ProjectileMovementComponent->Velocity = ShootDirection * ProjectileMovementComponent->InitialSpeed;
 	}
 }

@@ -81,7 +81,8 @@ void AMyEarthbender::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 	// Camera Toggle
 	PlayerInputComponent->BindAction("ChangePerspective", IE_Pressed, this, &AMyEarthbender::ChangePerspective);
 	// Fire command
-	PlayerInputComponent->BindAction("Shoot", IE_Pressed, this, &AMyEarthbender::Fire);
+	PlayerInputComponent->BindAction("CreateRock", IE_Pressed, this, &AMyEarthbender::CreateRock);
+	PlayerInputComponent->BindAction("ThrowRock", IE_Pressed, this, &AMyEarthbender::ThrowRock);
 
 }
 
@@ -105,7 +106,7 @@ void AMyEarthbender::ChangePerspective()
 	}
 }
 
-void AMyEarthbender::Fire()
+void AMyEarthbender::CreateRock()
 {
 	// Attempt to fire a projectile.
 	if (ProjectileClass)
@@ -114,7 +115,7 @@ void AMyEarthbender::Fire()
 		const FRotator SpawnRotation = GetControlRotation();
 		// MuzzleOffset is in camera space, so transform it to world space before offsetting from the character location to find the final muzzle position
 		//const FVector SpawnLocation = (GetWorld()->GetFirstPlayerController()->GetPawn()->GetActorLocation() + SpawnRotation.RotateVector(FVector(100.0f, 0.0f, 0.0f)));
-		const FVector SpawnLocation = (FVector(GetWorld()->GetFirstPlayerController()->GetPawn()->GetActorLocation().X, GetWorld()->GetFirstPlayerController()->GetPawn()->GetActorLocation().Y, 0.0f) + SpawnRotation.RotateVector(FVector(100.0f, 100.0f, 0.0f)));
+		const FVector SpawnLocation = (FVector(GetWorld()->GetFirstPlayerController()->GetPawn()->GetActorLocation().X, GetWorld()->GetFirstPlayerController()->GetPawn()->GetActorLocation().Y, 0.0f) + SpawnRotation.RotateVector(FVector(200.0f, 0.0f, 0.0f)));
 		//GetActorEyesViewPoint(CameraLocation, CameraRotation);
 
 		// Log the camera location and rotation.
@@ -144,11 +145,48 @@ void AMyEarthbender::Fire()
 			if (Projectile)
 			{
 				// Set the projectile's initial trajectory.
-				FVector LaunchDirection = MuzzleRotation.Vector();
-				Projectile->FireInDirection(LaunchDirection);
+				HeldRock = Projectile;
+				//FVector LaunchDirection = MuzzleRotation.Vector();
+				//Projectile->FireInDirection(LaunchDirection);
+				bIsHoldingRock = true;
 			}
 
 		}
+	}
+}
+
+void AMyEarthbender::ThrowRock()
+{
+	if (bIsHoldingRock && HeldRock)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("shoot!"));
+		// Calculate the throw direction based on the player's view direction.
+		const FRotator SpawnRotation = GetControlRotation();
+		const FVector ThrowDirection = SpawnRotation.Vector();
+
+		// Call the FireInDirection function on the held rock to set its initial velocity.
+		HeldRock->FireInDirection(ThrowDirection);
+		HeldRock = nullptr;
+		bIsHoldingRock = false;
+	}
+}
+
+bool AMyEarthbender::LineTraceMethod(FHitResult& OutHit)
+{
+	if(FPSCameraComponent)
+	{
+		FVector CameraLocation = FPSCameraComponent->GetComponentLocation();
+		FVector CameraForward = FPSCameraComponent->GetForwardVector();
+
+		FVector StartPoint = CameraLocation;
+		FVector EndPoint = StartPoint + CameraForward + (CameraForward * GrabRange);
+
+		FCollisionQueryParams Parameters;
+		return GetWorld()->LineTraceSingleByChannel(OutHit, StartPoint, EndPoint, ECC_Visibility, Parameters);
+	}
+	else
+	{
+		return false;
 	}
 }
 
