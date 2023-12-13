@@ -16,6 +16,8 @@
 #include "MyRock.h"
 #include "MyEarthbender.generated.h"
 
+class UCurveFloat;
+
 UCLASS()
 class CMP302_GAMEMECHANICS_API AMyEarthbender : public ACharacter
 {
@@ -25,6 +27,9 @@ public:
 	// Sets default values for this character's properties
 	AMyEarthbender();
 
+	UFUNCTION()
+		void updateRock(float value);
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -32,6 +37,17 @@ protected:
 	// Projectile class to spawn.
 	UPROPERTY(EditAnywhere, Category = Projectile)
 		TSubclassOf<class AMyRock> ProjectileClass;
+
+	FTimeline rockTimeline;
+	UPROPERTY(EditAnywhere, Category = "TimeLine")
+	UCurveFloat* rockCurveFloat;
+
+	UPROPERTY()
+	FVector startLocation;
+	UPROPERTY()
+	FVector endLocation;
+	UPROPERTY(EditAnywhere, Category = "TimeLine")
+		float zOffset;
 public:
 	// FPS camera.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) UCameraComponent* FPSCameraComponent;

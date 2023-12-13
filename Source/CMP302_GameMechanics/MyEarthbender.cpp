@@ -45,6 +45,13 @@ AMyEarthbender::AMyEarthbender()
 
 }
 
+void AMyEarthbender::updateRock(float value)
+{
+	FVector newLocation = FMath::Lerp(startLocation, endLocation, value);
+	HeldRock->SetActorLocation(newLocation);
+	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Timeline Works!"));
+}
+
 // Called when the game starts or when spawned
 void AMyEarthbender::BeginPlay()
 {
@@ -61,6 +68,8 @@ void AMyEarthbender::BeginPlay()
 void AMyEarthbender::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	rockTimeline.TickTimeline(DeltaTime);
 }
 
 // Called to bind functionality to input
@@ -110,12 +119,13 @@ void AMyEarthbender::CreateRock()
 	// Attempt to fire a projectile.
 	if (ProjectileClass)
 	{
-		AMyRock* Projectile = nullptr;
 		// Get the camera transform.
 		const FRotator SpawnRotation = GetControlRotation();
 		const FVector ActorForward = FVector(GetWorld()->GetFirstPlayerController()->GetPawn()->GetActorForwardVector() * FMath::RandRange(200.f, 400.f));
 		const FVector ActorLocation = GetWorld()->GetFirstPlayerController()->GetPawn()->GetActorLocation();
-		const FVector SpawnLocation = ((ActorLocation + ActorForward));
+		FVector SpawnLocation = ((ActorLocation + ActorForward));
+		SpawnLocation.Z = 0;
+		
 		//const FVector SpawnLocation = (FVector(GetWorld()->GetFirstPlayerController()->GetPawn()->GetActorLocation().X, GetWorld()->GetFirstPlayerController()->GetPawn()->GetActorLocation().Y, GetWorld()->GetFirstPlayerController()->GetPawn()->GetActorLocation().Z) + SpawnRotation.RotateVector(FVector(200.0f, 0.0f, 0.0f)));
 		// Log the camera location and rotation.
 		//UE_LOG(LogTemp, Warning, TEXT("CameraLocation: %s"), *CameraLocation.ToString());
@@ -129,8 +139,22 @@ void AMyEarthbender::CreateRock()
 
 			// Spawn the projectile at the muzzle.
 			HeldRock = World->SpawnActor<AMyRock>(ProjectileClass, SpawnLocation, SpawnRotation, SpawnParams);
-			if (Projectile)
+
+			if (rockCurveFloat)
 			{
+				FOnTimelineFloat timelineProgress;
+				timelineProgress.BindUFunction(this, FName("updateRock"));
+				rockTimeline.AddInterpFloat(rockCurveFloat, timelineProgress);
+
+				startLocation = endLocation = HeldRock->GetActorLocation();
+				endLocation.Z += zOffset;
+
+			}
+
+			if (HeldRock)
+			{
+				rockTimeline.PlayFromStart();
+				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Projectile Working!"));
 				UStaticMeshComponent* RockMeshComponent = HeldRock->RockMeshComponent;
 				if (RockMeshComponent)
 				{
@@ -166,6 +190,8 @@ void AMyEarthbender::ThrowRock()
 {
 	if (HeldRock)
 	{
+		//rockTimeline.Stop();
+
 		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("shoot!"));
 		// Calculate the throw direction based on the player's view direction.
 		const FRotator SpawnRotation = GetControlRotation();
