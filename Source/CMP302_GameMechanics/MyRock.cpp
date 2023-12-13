@@ -1,10 +1,28 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "MyRock.h"
+#include "Curves/CurveFloat.h"
 
 // Sets default values
 AMyRock::AMyRock()
 {
+	//Random Mesh Generator
+	static ConstructorHelpers::FObjectFinder<UStaticMesh>Mesh1(TEXT("/Script/Engine.StaticMesh'/Game/StarterContent/Shapes/Shape_Trim_90_In.Shape_Trim_90_In'"));
+	if (Mesh1.Succeeded())
+	{
+		RockMeshes.Add(Mesh1.Object);
+	}
+	static ConstructorHelpers::FObjectFinder<UStaticMesh>Mesh2(TEXT("'/Game/StarterContent/Shapes/Shape_Cube.Shape_Cube'"));
+	if (Mesh2.Succeeded())
+	{
+		RockMeshes.Add(Mesh2.Object);
+	}
+	static ConstructorHelpers::FObjectFinder<UStaticMesh>Mesh3(TEXT("'/Game/StarterContent/Shapes/Shape_Sphere.Shape_Sphere'"));
+	if (Mesh3.Succeeded())
+	{
+		RockMeshes.Add(Mesh3.Object);
+	}
+
 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
@@ -22,76 +40,63 @@ AMyRock::AMyRock()
 		RootComponent = CollisionComponent;
 	}
 
-	if (!ProjectileMovementComponent)
+	if (!RockMovementComponent)
 	{
 		// Use this component to drive this projectile's movement.
-		ProjectileMovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovementComponent"));
-		ProjectileMovementComponent->SetUpdatedComponent(CollisionComponent);
-		ProjectileMovementComponent->InitialSpeed = 0.0f;
-		ProjectileMovementComponent->MaxSpeed = 3000.0f;
-		ProjectileMovementComponent->bRotationFollowsVelocity = true;
-		ProjectileMovementComponent->bShouldBounce = true;
-		ProjectileMovementComponent->Bounciness = 0.3f;
-		ProjectileMovementComponent->ProjectileGravityScale = 0.0f;
+		RockMovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovementComponent"));
+		RockMovementComponent->SetUpdatedComponent(CollisionComponent);
+		//RockMovementComponent->InitialSpeed = 0.0f;
+		//RockMovementComponent->MaxSpeed = 0.0f;
+		RockMovementComponent->bRotationFollowsVelocity = false;
+		RockMovementComponent->bShouldBounce = true;
+		RockMovementComponent->Bounciness = 0.3f;
+		RockMovementComponent->ProjectileGravityScale = 0.0f;
 	}
 
-	if (!ProjectileMeshComponent)
+	if (!RockMeshComponent)
 	{
-		ProjectileMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ProjectileMeshComponent"));
-		static ConstructorHelpers::FObjectFinder<UStaticMesh>Mesh(TEXT("/Game/StarterContent/Shapes/Shape_Sphere.Shape_Sphere"));
-		if (Mesh.Succeeded())
+		int32 RandomNumber = FMath::RandRange(0, RockMeshes.Num() - 1);
+		RockMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ProjectileMeshComponent"));
+		//static ConstructorHelpers::FObjectFinder<UStaticMesh>Mesh(TEXT("/Script/Engine.StaticMesh'/Game/StarterContent/Shapes/Shape_Trim_90_In.Shape_Trim_90_In'"));
+		if (RockMeshes.IsValidIndex(RandomNumber))
 		{
-			ProjectileMeshComponent->SetStaticMesh(Mesh.Object);
+			FMath::FRand();
+			//RockMeshComponent->SetStaticMesh(Mesh.Object);
+			RockMeshComponent->SetStaticMesh(RockMeshes[RandomNumber]);
 		}
 
 		static ConstructorHelpers::FObjectFinder<UMaterial>Material(TEXT("/Game/StarterContent/Materials/M_Metal_Gold.M_Metal_Gold"));
 		if (Material.Succeeded())
 		{
-			ProjectileMaterialInstance = UMaterialInstanceDynamic::Create(Material.Object, ProjectileMeshComponent);
+			RockMaterialInstance = UMaterialInstanceDynamic::Create(Material.Object, RockMeshComponent);
 		}
-		ProjectileMeshComponent->SetMaterial(0, ProjectileMaterialInstance);
-		//ProjectileMeshComponent->SetRelativeScale3D(FVector(0.09f, 0.09f, 0.09f));
-		ProjectileMeshComponent->SetSimulatePhysics(true);
-		ProjectileMeshComponent->SetupAttachment(RootComponent);
+		RockMeshComponent->SetMaterial(0, RockMaterialInstance);
+		RockMeshComponent->SetRelativeScale3D(FVector(FMath::FRandRange(0.5f,1.25f)));
+		//RockMeshComponent->SetSimulatePhysics(true);
+		RockMeshComponent->SetupAttachment(RootComponent);
 	}
 
 	// Delete the projectile after 3 seconds.
 	//InitialLifeSpan = 4.0f;
 }
 
+
 // Called when the game starts or when spawned
 void AMyRock::BeginPlay()
 {
 	Super::BeginPlay();
-
 }
 
 // Called every frame
 void AMyRock::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
-	if (ProjectileMeshComponent->GetComponentLocation().Z <= 125.0f)
-	{
-	//	ProjectileMovementComponent->Velocity = FVector(ProjectileMovementComponent->Velocity.X, ProjectileMovementComponent->Velocity.Y, 500.0f);
-	}
-	else
-	{
-		atHeight = true;
-	//	ProjectileMovementComponent->Velocity = FVector(ProjectileMovementComponent->Velocity.X, ProjectileMovementComponent->Velocity.Y, 0.0f);
-	}
-
 }
 
 // Function that initializes the projectile's velocity in the shoot direction.
 void AMyRock::FireInDirection(const FVector& ShootDirection)
 {
-	atHeight = true;
-	if (atHeight)
-	{
-		ProjectileMeshComponent->SetSimulatePhysics(false);
-		ProjectileMovementComponent->InitialSpeed = 3000.0f;
-		ProjectileMovementComponent->Velocity = ShootDirection * ProjectileMovementComponent->InitialSpeed;
-	}
+	RockMeshComponent->SetSimulatePhysics(true);
+	RockMeshComponent->AddImpulse(ShootDirection * 500000);
 }
 

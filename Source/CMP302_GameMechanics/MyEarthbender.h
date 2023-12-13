@@ -6,6 +6,8 @@
 #include "GameFramework/Character.h"
 #include "Camera/CameraComponent.h"
 #include "Engine/StaticMeshActor.h"
+#include "Components/StaticMeshComponent.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "Engine/Engine.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/TimelineComponent.h"
@@ -13,6 +15,7 @@
 #include "PhysicsEngine/PhysicsHandleComponent.h"
 #include "MyRock.h"
 #include "MyEarthbender.generated.h"
+
 UCLASS()
 class CMP302_GAMEMECHANICS_API AMyEarthbender : public ACharacter
 {
@@ -29,7 +32,6 @@ protected:
 	// Projectile class to spawn.
 	UPROPERTY(EditAnywhere, Category = Projectile)
 		TSubclassOf<class AMyRock> ProjectileClass;
-
 public:
 	// FPS camera.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) UCameraComponent* FPSCameraComponent;
@@ -43,6 +45,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay) FVector MuzzleOffset;
 	// Grab Range for hold function based off gravity gun lab.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) float GrabRange = 1500;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite) float BoxExtentZ = -50.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) bool bIsHoldingRock = false;
 
 	AMyRock* HeldRock;
@@ -64,6 +67,8 @@ public:
 	UFUNCTION() void ChangePerspective();
 	// Function that handles spawning and holding projectiles.
 	UFUNCTION() void CreateRock();
+	//UFUNCTION() void UpdateRock();
+	UFUNCTION() void StopRock(); // For TimeLine
 	// Function that handles shooting projectiles.
 	UFUNCTION() void ThrowRock();
 

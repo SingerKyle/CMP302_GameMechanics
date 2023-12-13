@@ -6,8 +6,13 @@
 #include "Engine/StaticMeshActor.h"
 #include "Components/SphereComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
+#include "Components/TimelineComponent.h"
 #include "PhysicsEngine/PhysicsHandleComponent.h"
+#include "Math/UnrealMathUtility.h"
 #include "MyRock.generated.h"
+
+class UCurveFloat;
+
 UCLASS()
 class CMP302_GAMEMECHANICS_API AMyRock : public AActor
 {
@@ -20,7 +25,6 @@ public:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-
 public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -28,12 +32,14 @@ public:
 	void FireInDirection(const FVector& ShootDirection);
 
 	// Sphere collision component.
-	UPROPERTY(VisibleDefaultsOnly, Category = Projectile) USphereComponent* CollisionComponent;
+	UPROPERTY(VisibleAnywhere, Category = Projectile) USphereComponent* CollisionComponent;
 	// Projectile movement component.
-	UPROPERTY(VisibleAnywhere, Category = Movement) UProjectileMovementComponent* ProjectileMovementComponent;
+	UPROPERTY(VisibleAnywhere, Category = Movement) UProjectileMovementComponent* RockMovementComponent;
 	// Projectile mesh
-	UPROPERTY(VisibleDefaultsOnly, Category = Projectile) UStaticMeshComponent* ProjectileMeshComponent;
+	UPROPERTY(VisibleAnywhere, Category = Projectile) UStaticMeshComponent* RockMeshComponent;
 	// Projectile material
-	UPROPERTY(VisibleDefaultsOnly, Category = Movement) UMaterialInstanceDynamic* ProjectileMaterialInstance;
+	UPROPERTY(VisibleAnywhere, Category = Movement) UMaterialInstanceDynamic* RockMaterialInstance;
+	//Array of Static Meshes
+	UPROPERTY(EditAnywhere, Category = Rock) TArray<UStaticMesh*> RockMeshes;
 	bool atHeight = false;
 };
