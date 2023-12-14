@@ -7,19 +7,20 @@
 AMyRock::AMyRock()
 {
 	//Random Mesh Generator
-	static ConstructorHelpers::FObjectFinder<UStaticMesh>Mesh1(TEXT("/Script/Engine.StaticMesh'/Game/StarterContent/Shapes/Shape_Trim_90_In.Shape_Trim_90_In'"));
+	static ConstructorHelpers::FObjectFinder<UStaticMesh>Mesh1(TEXT("'/Game/StylizedProvencal/Meshes/SM_Rock_Small_01.SM_Rock_Small_01'"));
 	if (Mesh1.Succeeded())
 	{
 		RockMeshes.Add(Mesh1.Object);
 	}
-	static ConstructorHelpers::FObjectFinder<UStaticMesh>Mesh2(TEXT("'/Game/StarterContent/Shapes/Shape_Cube.Shape_Cube'"));
+	static ConstructorHelpers::FObjectFinder<UStaticMesh>Mesh2(TEXT("'/Game/StylizedProvencal/Meshes/SM_Rock_Small_03.SM_Rock_Small_03'"));
 	if (Mesh2.Succeeded())
 	{
 		RockMeshes.Add(Mesh2.Object);
 	}
-	static ConstructorHelpers::FObjectFinder<UStaticMesh>Mesh3(TEXT("'/Game/StarterContent/Shapes/Shape_Sphere.Shape_Sphere'"));
+	static ConstructorHelpers::FObjectFinder<UStaticMesh>Mesh3(TEXT("'/Game/StylizedProvencal/Meshes/SM_Rock_Small_02.SM_Rock_Small_02'"));
 	if (Mesh3.Succeeded())
 	{
+
 		RockMeshes.Add(Mesh3.Object);
 	}
 
@@ -36,6 +37,12 @@ AMyRock::AMyRock()
 		CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComponent"));
 		// Set the sphere's collision radius.
 		CollisionComponent->InitSphereRadius(15.0f);
+		//CollisionComponent->OnComponentHit.AddDynamic(this, &AMyRock::OnHit);
+		CollisionComponent->SetSimulatePhysics(true);
+		CollisionComponent->BodyInstance.SetCollisionProfileName("QueryAndPhysics");
+		CollisionComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		CollisionComponent->SetNotifyRigidBodyCollision(true);
+		CollisionComponent->OnComponentHit.AddDynamic(this, &AMyRock::OnHit);
 		// Set the root component to be the collision component.
 		RootComponent = CollisionComponent;
 	}
@@ -65,19 +72,26 @@ AMyRock::AMyRock()
 			RockMeshComponent->SetStaticMesh(RockMeshes[RandomNumber]);
 		}
 
-		static ConstructorHelpers::FObjectFinder<UMaterial>Material(TEXT("/Game/StarterContent/Materials/M_Metal_Gold.M_Metal_Gold"));
+		static ConstructorHelpers::FObjectFinder<UMaterial>Material(TEXT("'/Game/StylizedProvencal/Materials/MI_Rocks_.MI_Rocks_'"));
 		if (Material.Succeeded())
 		{
 			RockMaterialInstance = UMaterialInstanceDynamic::Create(Material.Object, RockMeshComponent);
 		}
 		RockMeshComponent->SetMaterial(0, RockMaterialInstance);
-		RockMeshComponent->SetRelativeScale3D(FVector(FMath::FRandRange(0.5f,1.25f)));
-		//RockMeshComponent->SetSimulatePhysics(true);
+		RockMeshComponent->SetRelativeScale3D(FVector(FMath::FRandRange(2.0f, 2.5f)));
+		FRotator newRotation(FMath::FRandRange(0.0f, 360.0f), FMath::FRandRange(0.0f, 360.0f), FMath::FRandRange(0.0f, 360.0f));
+		RockMeshComponent->SetRelativeRotation(newRotation);
+		RockMeshComponent->SetSimulatePhysics(true);
+		RockMeshComponent->SetCollisionProfileName("QueryAndPhysics");
+		RockMeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		RockMeshComponent->SetNotifyRigidBodyCollision(true);
+		RockMeshComponent->OnComponentHit.AddDynamic(this, &AMyRock::OnHit);
 		RockMeshComponent->SetupAttachment(RootComponent);
+		RockMeshComponent->SetAllMassScale(1.0);
 	}
 
 	// Delete the projectile after 3 seconds.
-	//InitialLifeSpan = 4.0f;
+	InitialLifeSpan = 4.0f;
 }
 
 
@@ -96,7 +110,29 @@ void AMyRock::Tick(float DeltaTime)
 // Function that initializes the projectile's velocity in the shoot direction.
 void AMyRock::FireInDirection(const FVector& ShootDirection)
 {
-	RockMeshComponent->SetSimulatePhysics(true);
-	RockMeshComponent->AddImpulse(ShootDirection * 500000);
+	// Get the current scale of the rock
+	FVector RockScale = RockMeshComponent->GetComponentScale();
+
+	// Calculate a scaling factor based on the rock's scale
+	float ScaleFactor = FMath::Max3(RockScale.X, RockScale.Y, RockScale.Z);
+
+	// Adjust the impulse based on the scale factor
+	float ImpulseStrength = 250000 * ScaleFactor;
+
+	CollisionComponent->SetSimulatePhysics(true);
+	RootComponent = CollisionComponent;
+	//UE_LOG(LogTemp, Warning, TEXT("Impulse: %f"), ScaleFactor);
+	RockMeshComponent->AddImpulse(ShootDirection * ImpulseStrength);
 }
 
+void AMyRock::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
+{
+	Destroy();
+
+	GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Cyan, TEXT("test"));
+
+	if ((OtherActor != NULL) && (OtherActor != this) && (OtherComp != NULL))
+	{
+		
+	}
+}

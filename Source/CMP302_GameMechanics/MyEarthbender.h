@@ -40,14 +40,16 @@ protected:
 
 	FTimeline rockTimeline;
 	UPROPERTY(EditAnywhere, Category = "TimeLine")
-	UCurveFloat* rockCurveFloat;
+		UCurveFloat* rockCurveFloat;
 
 	UPROPERTY()
-	FVector startLocation;
+		FVector startLocation;
 	UPROPERTY()
-	FVector endLocation;
+		FVector endLocation;
 	UPROPERTY(EditAnywhere, Category = "TimeLine")
 		float zOffset;
+
+
 public:
 	// FPS camera.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) UCameraComponent* FPSCameraComponent;
@@ -63,8 +65,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) float GrabRange = 1500;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) float BoxExtentZ = -50.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) bool bIsHoldingRock = false;
+	// Health
+	UPROPERTY(EditAnywhere) float health;
+	int currentPower = 1;
 
-	AMyRock* HeldRock;
+	UPROPERTY(EditAnywhere, Category = "Projectile") AMyRock* HeldRock;
 
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -81,12 +86,19 @@ public:
 	UFUNCTION() void StopJump();
 	// Function for toggle perspective
 	UFUNCTION() void ChangePerspective();
+	// Power switch case
+	UFUNCTION() void powerPick();
 	// Function that handles spawning and holding projectiles.
 	UFUNCTION() void CreateRock();
 	//UFUNCTION() void UpdateRock();
-	UFUNCTION() void StopRock(); // For TimeLine
+	UFUNCTION() void createClone();
 	// Function that handles shooting projectiles.
 	UFUNCTION() void ThrowRock();
+	// TAKE DAMAGE
+	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
+
+	// sets which ability to use
+	UFUNCTION() void setPower(int num);
 
 	UFUNCTION(BlueprintCallable)
 		bool LineTraceMethod(FHitResult& OutHit);

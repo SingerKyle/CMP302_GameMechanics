@@ -31,6 +31,8 @@ public:
 	// Function that initializes the projectile's velocity in the shoot direction.
 	void FireInDirection(const FVector& ShootDirection);
 
+	UFUNCTION() void OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
+
 	// Sphere collision component.
 	UPROPERTY(VisibleAnywhere, Category = Projectile) USphereComponent* CollisionComponent;
 	// Projectile movement component.

@@ -9,17 +9,18 @@ AMyEarthbender::AMyEarthbender()
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
+	GetCapsuleComponent()->InitCapsuleSize(34.0f, 88.0f);
+
 	// Create First Person Camera
 	FPSCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
 	check(FPSCameraComponent != nullptr);
 	// Create Third Person Camera
 	TPSCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("ThirdPersonCamera"));
-	//	check(TPSCameraComponent != nullptr);
+	check(TPSCameraComponent != nullptr);
 
-		// Attach the camera component to our capsule component.
+	// Attach the camera component to our capsule component.
 	FPSCameraComponent->SetupAttachment(CastChecked<USceneComponent, UCapsuleComponent>(GetCapsuleComponent()));
 	TPSCameraComponent->SetupAttachment(CastChecked<USceneComponent, UCapsuleComponent>(GetCapsuleComponent()));
-
 	// Set camera just above the eye level of the model (hopefully)
 	FPSCameraComponent->SetRelativeLocation(FVector(20.0f, 0.0f, 30.0f + BaseEyeHeight));
 	// Allow the user to control camera rotation
@@ -29,6 +30,7 @@ AMyEarthbender::AMyEarthbender()
 	TPSCameraComponent->SetRelativeLocation(FVector(-150.0f, 10.0f, 65.0f));
 	// Allow the user to control camera rotation
 	TPSCameraComponent->bUsePawnControlRotation = true;
+
 
 	//First Person Arm Mesh
 	FPSArms = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FirstPersonArms"));
@@ -43,13 +45,15 @@ AMyEarthbender::AMyEarthbender()
 	FPSArms->bCastDynamicShadow = false;
 	FPSArms->CastShadow = false;
 
+	zOffset = BaseEyeHeight + 50.0f;
+	health = 100.0f;
 }
 
 void AMyEarthbender::updateRock(float value)
 {
 	FVector newLocation = FMath::Lerp(startLocation, endLocation, value);
 	HeldRock->SetActorLocation(newLocation);
-	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Timeline Works!"));
+	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Timeline Works!"));
 }
 
 // Called when the game starts or when spawned
@@ -59,9 +63,14 @@ void AMyEarthbender::BeginPlay()
 
 	check(GEngine != nullptr);
 
+	APlayerCameraManager* const camMan = GetWorld()->GetFirstPlayerController()->PlayerCameraManager;
+
+	camMan->ViewPitchMin = -50.f;
+	camMan->ViewPitchMax = 50.f;
+
 	// Display a debug message for five seconds. 
 	// The -1 "Key" value argument prevents the message from being updated or refreshed.
-	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("EarthBender Working!"));
+	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("EarthBender Working!!"));
 }
 
 // Called every frame
@@ -89,8 +98,14 @@ void AMyEarthbender::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 	// Camera Toggle
 	PlayerInputComponent->BindAction("ChangePerspective", IE_Pressed, this, &AMyEarthbender::ChangePerspective);
 	// Fire command
-	PlayerInputComponent->BindAction("CreateRock", IE_Pressed, this, &AMyEarthbender::CreateRock);
+	PlayerInputComponent->BindAction("CreateRock", IE_Pressed, this, &AMyEarthbender::powerPick);
 	PlayerInputComponent->BindAction("ThrowRock", IE_Pressed, this, &AMyEarthbender::ThrowRock);
+
+	// selecting ability
+	DECLARE_DELEGATE_OneParam(InputDelegate, const int);
+	PlayerInputComponent->BindAction<InputDelegate>("Power1", IE_Pressed, this, &AMyEarthbender::setPower, 1);
+	PlayerInputComponent->BindAction<InputDelegate>("Power2", IE_Pressed, this, &AMyEarthbender::setPower, 2);
+	PlayerInputComponent->BindAction<InputDelegate>("Power2", IE_Pressed, this, &AMyEarthbender::setPower, 3);
 
 }
 
@@ -114,6 +129,25 @@ void AMyEarthbender::ChangePerspective()
 	}
 }
 
+void AMyEarthbender::powerPick()
+{
+	switch (currentPower)
+	{
+	case 1:
+		CreateRock();
+		break;
+	case 2:
+
+		break;
+	case 3:
+		createClone();
+		break;
+	default:
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, TEXT("Switch Error"));
+		break;
+	}
+}
+
 void AMyEarthbender::CreateRock()
 {
 	// Attempt to fire a projectile.
@@ -124,8 +158,8 @@ void AMyEarthbender::CreateRock()
 		const FVector ActorForward = FVector(GetWorld()->GetFirstPlayerController()->GetPawn()->GetActorForwardVector() * FMath::RandRange(200.f, 400.f));
 		const FVector ActorLocation = GetWorld()->GetFirstPlayerController()->GetPawn()->GetActorLocation();
 		FVector SpawnLocation = ((ActorLocation + ActorForward));
-		SpawnLocation.Z = 0;
-		
+		SpawnLocation.Z = 100;
+
 		//const FVector SpawnLocation = (FVector(GetWorld()->GetFirstPlayerController()->GetPawn()->GetActorLocation().X, GetWorld()->GetFirstPlayerController()->GetPawn()->GetActorLocation().Y, GetWorld()->GetFirstPlayerController()->GetPawn()->GetActorLocation().Z) + SpawnRotation.RotateVector(FVector(200.0f, 0.0f, 0.0f)));
 		// Log the camera location and rotation.
 		//UE_LOG(LogTemp, Warning, TEXT("CameraLocation: %s"), *CameraLocation.ToString());
@@ -139,12 +173,13 @@ void AMyEarthbender::CreateRock()
 
 			// Spawn the projectile at the muzzle.
 			HeldRock = World->SpawnActor<AMyRock>(ProjectileClass, SpawnLocation, SpawnRotation, SpawnParams);
-
+			//HeldRock->SetActorScale3D(FVector(2, 2, 2));
 			if (rockCurveFloat)
 			{
 				FOnTimelineFloat timelineProgress;
 				timelineProgress.BindUFunction(this, FName("updateRock"));
 				rockTimeline.AddInterpFloat(rockCurveFloat, timelineProgress);
+				//rockTimeline.SetLooping(true);
 
 				startLocation = endLocation = HeldRock->GetActorLocation();
 				endLocation.Z += zOffset;
@@ -170,6 +205,11 @@ void AMyEarthbender::CreateRock()
 	}
 }
 
+void AMyEarthbender::createClone()
+{
+
+}
+
 /*void AMyEarthbender::UpdateRock()
 {
 	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("updateRock!"));
@@ -181,16 +221,11 @@ void AMyEarthbender::CreateRock()
 	}
 }*/
 
-void AMyEarthbender::StopRock()
-{
-	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Stop!"));
-}
-
 void AMyEarthbender::ThrowRock()
 {
 	if (HeldRock)
 	{
-		//rockTimeline.Stop();
+		rockTimeline.Stop();
 
 		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("shoot!"));
 		// Calculate the throw direction based on the player's view direction.
@@ -199,14 +234,32 @@ void AMyEarthbender::ThrowRock()
 
 		// Call the FireInDirection function on the held rock to set its initial velocity.
 		HeldRock->FireInDirection(ThrowDirection);
-		HeldRock = nullptr;
+		//HeldRock = nullptr;
 		//bIsHoldingRock = false;
 	}
 }
 
+float AMyEarthbender::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	health -= 50;
+	UE_LOG(LogTemp, Warning, TEXT("Health: %f"), health);
+
+	if (health <= 0)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Dead!"));
+	}
+
+	return 50.0f;
+}
+
+void AMyEarthbender::setPower(int num)
+{
+	currentPower = num;
+}
+
 bool AMyEarthbender::LineTraceMethod(FHitResult& OutHit)
 {
-	if(FPSCameraComponent)
+	if (FPSCameraComponent)
 	{
 		FVector CameraLocation = FPSCameraComponent->GetComponentLocation();
 		FVector CameraForward = FPSCameraComponent->GetForwardVector();
