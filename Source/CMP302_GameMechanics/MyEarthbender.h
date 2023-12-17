@@ -59,6 +59,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite) bool isFirstPerson = true;
 	// First-Person Arms
 	UPROPERTY(VisibleDefaultsOnly, Category = Mesh) USkeletalMeshComponent* FPSArms;
+	//BodyMesh
+	UPROPERTY(VisibleDefaultsOnly, Category = Mesh) USkeletalMeshComponent* bodyMesh;
 	// Gun muzzle offset from the camera location.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay) FVector MuzzleOffset;
 	// Grab Range for hold function based off gravity gun lab.

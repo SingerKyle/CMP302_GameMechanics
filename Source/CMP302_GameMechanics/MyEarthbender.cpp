@@ -2,6 +2,7 @@
 
 
 #include "MyEarthbender.h"
+#include "Animation/AnimInstance.h"
 
 // Sets default values
 AMyEarthbender::AMyEarthbender()
@@ -9,7 +10,24 @@ AMyEarthbender::AMyEarthbender()
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
+<<<<<<< HEAD
+	GetCapsuleComponent()->InitCapsuleSize(34.0f, 95.0f);
+
+	bodyMesh = GetMesh();
+
+	static ConstructorHelpers::FObjectFinder<USkeletalMesh> MeshAsset(TEXT("'/Game/ParagonGideon/Characters/Heroes/Gideon/Meshes/Gideon.Gideon'"));
+	if (MeshAsset.Succeeded())
+	{
+		bodyMesh->SetSkeletalMesh(MeshAsset.Object);
+		//Moves model into capsule
+		bodyMesh->SetRelativeLocation(FVector(bodyMesh->GetRelativeLocation().X, bodyMesh->GetRelativeLocation().Y, -95.0f));
+		bodyMesh->SetRelativeRotation(FRotator(bodyMesh->GetRelativeRotation().Pitch, -90.0f, bodyMesh->GetRelativeRotation().Yaw));
+		bodyMesh->SetCastHiddenShadow(true);
+		bodyMesh->SetupAttachment(RootComponent);
+	}
+=======
 	GetCapsuleComponent()->InitCapsuleSize(34.0f, 88.0f);
+>>>>>>> parent of 1feb2f0 (Added effects to my rock throw and started next ability - sand clones)
 
 	// Create First Person Camera
 	FPSCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
@@ -22,7 +40,11 @@ AMyEarthbender::AMyEarthbender()
 	FPSCameraComponent->SetupAttachment(CastChecked<USceneComponent, UCapsuleComponent>(GetCapsuleComponent()));
 	TPSCameraComponent->SetupAttachment(CastChecked<USceneComponent, UCapsuleComponent>(GetCapsuleComponent()));
 	// Set camera just above the eye level of the model (hopefully)
+<<<<<<< HEAD
+	FPSCameraComponent->SetRelativeLocation(FVector(60.0f, 0.0f, BaseEyeHeight + 10.0f));
+=======
 	FPSCameraComponent->SetRelativeLocation(FVector(20.0f, 0.0f, 30.0f + BaseEyeHeight));
+>>>>>>> parent of 1feb2f0 (Added effects to my rock throw and started next ability - sand clones)
 	// Allow the user to control camera rotation
 	FPSCameraComponent->bUsePawnControlRotation = true;
 
@@ -37,13 +59,20 @@ AMyEarthbender::AMyEarthbender()
 	check(FPSArms != nullptr);
 
 	// Make only the owning actor see the arms
-	FPSArms->SetOnlyOwnerSee(true);
-	// Attach Arms to camera
-	FPSArms->SetupAttachment(FPSCameraComponent);
-	FPSArms->SetRelativeLocation(FVector(165, 0, -85));
-	FPSArms->SetRelativeRotation(FRotator(-55.0f, -20.0f, -110.0f));
-	FPSArms->bCastDynamicShadow = false;
-	FPSArms->CastShadow = false;
+	static ConstructorHelpers::FObjectFinder<USkeletalMesh> MeshAssetArms(TEXT("'/Game/ParagonGideon/Characters/Heroes/Gideon/Meshes/Gideon.Gideon'"));
+	if (MeshAssetArms.Succeeded())
+	{
+
+
+		FPSArms->SetOnlyOwnerSee(true);
+		// Attach Arms to camera
+		FPSArms->SetupAttachment(FPSCameraComponent);
+		FPSArms->SetRelativeLocation(FVector(165, 0, -85));
+		FPSArms->SetRelativeRotation(FRotator(-55.0f, -20.0f, -110.0f));
+		FPSArms->bCastDynamicShadow = false;
+		FPSArms->CastShadow = false;
+	}
+	
 
 	zOffset = BaseEyeHeight + 50.0f;
 	health = 100.0f;
@@ -118,14 +147,16 @@ void AMyEarthbender::ChangePerspective()
 		FPSCameraComponent->SetActive(true);
 		TPSCameraComponent->SetActive(false);
 		// Hide model in first person
-		//GetMesh()->SetOwnerNoSee(true);
+		GetMesh()->SetOwnerNoSee(true);
+		FPSArms->SetOwnerNoSee(false);
 	}
 	else
 	{
 		FPSCameraComponent->SetActive(false);
 		TPSCameraComponent->SetActive(true);
 		// show model in third person
-		//GetMesh()->SetOwnerNoSee(false);
+		GetMesh()->SetOwnerNoSee(false);
+		FPSArms->SetOwnerNoSee(true);
 	}
 }
 
@@ -208,6 +239,32 @@ void AMyEarthbender::CreateRock()
 void AMyEarthbender::createClone()
 {
 
+<<<<<<< HEAD
+			// Get the camera transform.
+			const FRotator SpawnRotation(GetActorForwardVector().X, RandomSpawnAngle, GetActorForwardVector().Z);
+			FVector Offset(FMath::Cos(FMath::DegreesToRadians(RandomSpawnAngle)), FMath::Sin(FMath::DegreesToRadians(RandomSpawnAngle)), 0.0f);
+			const FVector ActorLocation = World->GetFirstPlayerController()->GetPawn()->GetActorLocation();
+			FVector SpawnLocation = ActorLocation + Offset * FMath::RandRange(200.f, 500.f);
+			SpawnLocation.Z = 100;
+
+			FActorSpawnParameters SpawnParams;
+			SpawnParams.Owner = this;
+			SpawnParams.Instigator = GetInstigator();
+
+			// Spawn the projectile at the muzzle.
+			clone = World->SpawnActor<AAbilityClone>(CloneClass, SpawnLocation, SpawnRotation, SpawnParams);
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("SHOULD BE SPAWNED!"));
+
+			if (clone)
+			{
+				AbilityClones.Push(clone);
+			}
+			
+		}
+	}
+
+=======
+>>>>>>> parent of 1feb2f0 (Added effects to my rock throw and started next ability - sand clones)
 }
 
 /*void AMyEarthbender::UpdateRock()
