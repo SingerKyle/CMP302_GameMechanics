@@ -2,6 +2,10 @@
 
 #include "MyRock.h"
 #include "Curves/CurveFloat.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraSystem.h"
+#include "NiagaraComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 // Sets default values
 AMyRock::AMyRock()
@@ -37,11 +41,6 @@ AMyRock::AMyRock()
 		CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComponent"));
 		// Set the sphere's collision radius.
 		CollisionComponent->InitSphereRadius(15.0f);
-		//CollisionComponent->OnComponentHit.AddDynamic(this, &AMyRock::OnHit);
-		CollisionComponent->SetSimulatePhysics(true);
-		CollisionComponent->BodyInstance.SetCollisionProfileName("QueryAndPhysics");
-		CollisionComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-		CollisionComponent->SetNotifyRigidBodyCollision(true);
 		CollisionComponent->OnComponentHit.AddDynamic(this, &AMyRock::OnHit);
 		// Set the root component to be the collision component.
 		RootComponent = CollisionComponent;
@@ -81,13 +80,15 @@ AMyRock::AMyRock()
 		RockMeshComponent->SetRelativeScale3D(FVector(FMath::FRandRange(2.0f, 2.5f)));
 		FRotator newRotation(FMath::FRandRange(0.0f, 360.0f), FMath::FRandRange(0.0f, 360.0f), FMath::FRandRange(0.0f, 360.0f));
 		RockMeshComponent->SetRelativeRotation(newRotation);
-		RockMeshComponent->SetSimulatePhysics(true);
-		RockMeshComponent->SetCollisionProfileName("QueryAndPhysics");
-		RockMeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-		RockMeshComponent->SetNotifyRigidBodyCollision(true);
 		RockMeshComponent->OnComponentHit.AddDynamic(this, &AMyRock::OnHit);
 		RockMeshComponent->SetupAttachment(RootComponent);
 		RockMeshComponent->SetAllMassScale(1.0);
+	}
+
+	static ConstructorHelpers::FObjectFinder<UNiagaraSystem> NiagaraSystemAsset(TEXT("'/Game/Blueprints/NewNiagaraSystem.NewNiagaraSystem'"));
+	if (NiagaraSystemAsset.Succeeded())
+	{
+		RockParticle = NiagaraSystemAsset.Object;
 	}
 
 	// Delete the projectile after 3 seconds.
@@ -99,6 +100,15 @@ AMyRock::AMyRock()
 void AMyRock::BeginPlay()
 {
 	Super::BeginPlay();
+
+	RockMeshComponent->SetSimulatePhysics(false);
+	RockMeshComponent->SetCollisionProfileName("NoCollision");
+	RockMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	RockMeshComponent->SetNotifyRigidBodyCollision(false);
+	CollisionComponent->SetSimulatePhysics(false);
+	CollisionComponent->SetCollisionProfileName("NoCollision");
+	CollisionComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	CollisionComponent->SetNotifyRigidBodyCollision(false);
 }
 
 // Called every frame
@@ -119,20 +129,32 @@ void AMyRock::FireInDirection(const FVector& ShootDirection)
 	// Adjust the impulse based on the scale factor
 	float ImpulseStrength = 250000 * ScaleFactor;
 
+	RockMeshComponent->SetSimulatePhysics(true);
+	RockMeshComponent->SetCollisionProfileName("QueryAndPhysics");
+	RockMeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	RockMeshComponent->SetNotifyRigidBodyCollision(true);
 	CollisionComponent->SetSimulatePhysics(true);
+	CollisionComponent->SetCollisionProfileName("QueryAndPhysics");
+	CollisionComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	CollisionComponent->SetNotifyRigidBodyCollision(true);
 	RootComponent = CollisionComponent;
 	//UE_LOG(LogTemp, Warning, TEXT("Impulse: %f"), ScaleFactor);
-	RockMeshComponent->AddImpulse(ShootDirection * ImpulseStrength);
+	CollisionComponent->AddImpulse(ShootDirection * ImpulseStrength);
 }
 
 void AMyRock::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
+	if (RockParticle)
+	{
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), RockParticle, GetActorLocation());
+	}
+
 	Destroy();
 
 	GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Cyan, TEXT("test"));
 
 	if ((OtherActor != NULL) && (OtherActor != this) && (OtherComp != NULL))
 	{
-		
+
 	}
 }

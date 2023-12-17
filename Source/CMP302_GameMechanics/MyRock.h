@@ -8,9 +8,11 @@
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Components/TimelineComponent.h"
 #include "PhysicsEngine/PhysicsHandleComponent.h"
+#include "NiagaraComponent.h"
 #include "Math/UnrealMathUtility.h"
 #include "MyRock.generated.h"
 
+class UNiagaraSystem;
 class UCurveFloat;
 
 UCLASS()
@@ -41,6 +43,9 @@ public:
 	UPROPERTY(VisibleAnywhere, Category = Projectile) UStaticMeshComponent* RockMeshComponent;
 	// Projectile material
 	UPROPERTY(VisibleAnywhere, Category = Movement) UMaterialInstanceDynamic* RockMaterialInstance;
+	// particles
+	UPROPERTY(EditAnywhere, Category = Particles) UNiagaraSystem* RockParticle;
+	UPROPERTY(VisibleAnywhere) UNiagaraComponent* rockParticleComponent;
 	//Array of Static Meshes
 	UPROPERTY(EditAnywhere, Category = Rock) TArray<UStaticMesh*> RockMeshes;
 	bool atHeight = false;

@@ -13,6 +13,7 @@
 #include "Components/TimelineComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "PhysicsEngine/PhysicsHandleComponent.h"
+#include "AbilityClone.h"
 #include "MyRock.h"
 #include "MyEarthbender.generated.h"
 
@@ -37,6 +38,9 @@ protected:
 	// Projectile class to spawn.
 	UPROPERTY(EditAnywhere, Category = Projectile)
 		TSubclassOf<class AMyRock> ProjectileClass;
+	// clone
+	UPROPERTY(EditAnywhere, Category = clone)
+		TSubclassOf<class AAbilityClone> CloneClass;
 
 	FTimeline rockTimeline;
 	UPROPERTY(EditAnywhere, Category = "TimeLine")
@@ -72,7 +76,7 @@ public:
 	int currentPower = 1;
 
 	UPROPERTY(EditAnywhere, Category = "Projectile") AMyRock* HeldRock;
-
+	UPROPERTY(EditAnywhere, Category = "clone") AAbilityClone* clone;
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 

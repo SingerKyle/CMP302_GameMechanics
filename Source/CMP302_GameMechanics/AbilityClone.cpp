@@ -8,7 +8,7 @@
 // Sets default values
 AAbilityClone::AAbilityClone()
 {
- 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 	RootComponent = GetCapsuleComponent();
 	GetCapsuleComponent()->InitCapsuleSize(34.0f, 95.0f);
@@ -21,8 +21,8 @@ AAbilityClone::AAbilityClone()
 		// Set the animation blueprint on the skeletal mesh component
 		CloneBody->SetAnimInstanceClass(AnimationBlueprintFinder.Object->GeneratedClass);
 	}
-		// Use ObjectFinder to set the mesh
-		static ConstructorHelpers::FObjectFinder<USkeletalMesh> MeshAsset(TEXT("'/Game/ParagonGideon/Characters/Heroes/Gideon/Meshes/Gideon.Gideon'"));
+	// Use ObjectFinder to set the mesh
+	static ConstructorHelpers::FObjectFinder<USkeletalMesh> MeshAsset(TEXT("'/Game/ParagonGideon/Characters/Heroes/Gideon/Meshes/Gideon.Gideon'"));
 	if (MeshAsset.Succeeded())
 	{
 		CloneBody->SetSkeletalMesh(MeshAsset.Object);
@@ -32,10 +32,10 @@ AAbilityClone::AAbilityClone()
 		CloneBody->SetupAttachment(RootComponent);
 	}
 
-	
+
 
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
-	
+
 	InitialLifeSpan = 10.f;
 }
 

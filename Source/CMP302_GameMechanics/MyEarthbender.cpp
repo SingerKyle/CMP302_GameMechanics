@@ -10,7 +10,6 @@ AMyEarthbender::AMyEarthbender()
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-<<<<<<< HEAD
 	GetCapsuleComponent()->InitCapsuleSize(34.0f, 95.0f);
 
 	bodyMesh = GetMesh();
@@ -25,9 +24,6 @@ AMyEarthbender::AMyEarthbender()
 		bodyMesh->SetCastHiddenShadow(true);
 		bodyMesh->SetupAttachment(RootComponent);
 	}
-=======
-	GetCapsuleComponent()->InitCapsuleSize(34.0f, 88.0f);
->>>>>>> parent of 1feb2f0 (Added effects to my rock throw and started next ability - sand clones)
 
 	// Create First Person Camera
 	FPSCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
@@ -40,19 +36,16 @@ AMyEarthbender::AMyEarthbender()
 	FPSCameraComponent->SetupAttachment(CastChecked<USceneComponent, UCapsuleComponent>(GetCapsuleComponent()));
 	TPSCameraComponent->SetupAttachment(CastChecked<USceneComponent, UCapsuleComponent>(GetCapsuleComponent()));
 	// Set camera just above the eye level of the model (hopefully)
-<<<<<<< HEAD
 	FPSCameraComponent->SetRelativeLocation(FVector(60.0f, 0.0f, BaseEyeHeight + 10.0f));
-=======
-	FPSCameraComponent->SetRelativeLocation(FVector(20.0f, 0.0f, 30.0f + BaseEyeHeight));
->>>>>>> parent of 1feb2f0 (Added effects to my rock throw and started next ability - sand clones)
 	// Allow the user to control camera rotation
 	FPSCameraComponent->bUsePawnControlRotation = true;
 
 	// Set third person camera to behind the model and at eye level
-	TPSCameraComponent->SetRelativeLocation(FVector(-150.0f, 10.0f, 65.0f));
+	TPSCameraComponent->SetRelativeLocation(FVector(-210.0f, 10.0f, 65.0f));
 	// Allow the user to control camera rotation
 	TPSCameraComponent->bUsePawnControlRotation = true;
 
+	CloneClass = AAbilityClone::StaticClass();
 
 	//First Person Arm Mesh
 	FPSArms = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FirstPersonArms"));
@@ -72,7 +65,7 @@ AMyEarthbender::AMyEarthbender()
 		FPSArms->bCastDynamicShadow = false;
 		FPSArms->CastShadow = false;
 	}
-	
+
 
 	zOffset = BaseEyeHeight + 50.0f;
 	health = 100.0f;
@@ -80,9 +73,13 @@ AMyEarthbender::AMyEarthbender()
 
 void AMyEarthbender::updateRock(float value)
 {
-	FVector newLocation = FMath::Lerp(startLocation, endLocation, value);
-	HeldRock->SetActorLocation(newLocation);
-	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Timeline Works!"));
+	if (rockCurveFloat)
+	{
+		FVector newLocation = FMath::Lerp(startLocation, endLocation, value);
+		HeldRock->SetActorLocation(newLocation);
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Timeline Works!"));
+	}
+
 }
 
 // Called when the game starts or when spawned
@@ -100,6 +97,13 @@ void AMyEarthbender::BeginPlay()
 	// Display a debug message for five seconds. 
 	// The -1 "Key" value argument prevents the message from being updated or refreshed.
 	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("EarthBender Working!!"));
+
+	if (rockCurveFloat)
+	{
+		FOnTimelineFloat timelineProgress;
+		timelineProgress.BindUFunction(this, FName("updateRock"));
+		rockTimeline.AddInterpFloat(rockCurveFloat, timelineProgress);
+	}
 }
 
 // Called every frame
@@ -134,7 +138,7 @@ void AMyEarthbender::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 	DECLARE_DELEGATE_OneParam(InputDelegate, const int);
 	PlayerInputComponent->BindAction<InputDelegate>("Power1", IE_Pressed, this, &AMyEarthbender::setPower, 1);
 	PlayerInputComponent->BindAction<InputDelegate>("Power2", IE_Pressed, this, &AMyEarthbender::setPower, 2);
-	PlayerInputComponent->BindAction<InputDelegate>("Power2", IE_Pressed, this, &AMyEarthbender::setPower, 3);
+	PlayerInputComponent->BindAction<InputDelegate>("Power3", IE_Pressed, this, &AMyEarthbender::setPower, 3);
 
 }
 
@@ -189,7 +193,7 @@ void AMyEarthbender::CreateRock()
 		const FVector ActorForward = FVector(GetWorld()->GetFirstPlayerController()->GetPawn()->GetActorForwardVector() * FMath::RandRange(200.f, 400.f));
 		const FVector ActorLocation = GetWorld()->GetFirstPlayerController()->GetPawn()->GetActorLocation();
 		FVector SpawnLocation = ((ActorLocation + ActorForward));
-		SpawnLocation.Z = 100;
+		SpawnLocation.Z = 0;
 
 		//const FVector SpawnLocation = (FVector(GetWorld()->GetFirstPlayerController()->GetPawn()->GetActorLocation().X, GetWorld()->GetFirstPlayerController()->GetPawn()->GetActorLocation().Y, GetWorld()->GetFirstPlayerController()->GetPawn()->GetActorLocation().Z) + SpawnRotation.RotateVector(FVector(200.0f, 0.0f, 0.0f)));
 		// Log the camera location and rotation.
@@ -205,16 +209,12 @@ void AMyEarthbender::CreateRock()
 			// Spawn the projectile at the muzzle.
 			HeldRock = World->SpawnActor<AMyRock>(ProjectileClass, SpawnLocation, SpawnRotation, SpawnParams);
 			//HeldRock->SetActorScale3D(FVector(2, 2, 2));
+
+				//rockTimeline.SetLooping(true);
 			if (rockCurveFloat)
 			{
-				FOnTimelineFloat timelineProgress;
-				timelineProgress.BindUFunction(this, FName("updateRock"));
-				rockTimeline.AddInterpFloat(rockCurveFloat, timelineProgress);
-				//rockTimeline.SetLooping(true);
-
 				startLocation = endLocation = HeldRock->GetActorLocation();
 				endLocation.Z += zOffset;
-
 			}
 
 			if (HeldRock)
@@ -230,7 +230,7 @@ void AMyEarthbender::CreateRock()
 					BoxExtentZ = Bounds.BoxExtent.Z * 2;
 				}
 				//HeldRock->SetActorLocation(FVector(Projectile->GetActorLocation().X, Projectile->GetActorLocation().Y, -BoxExtentZ));
-				//HeldRock = Projectile;
+				//HeldRocks.Push(HeldRock);
 			}
 		}
 	}
@@ -238,8 +238,15 @@ void AMyEarthbender::CreateRock()
 
 void AMyEarthbender::createClone()
 {
+	if (CloneClass)
+	{
+		UWorld* World = GetWorld();
 
-<<<<<<< HEAD
+		if (World)
+		{
+			// calculate random angle to position the clone
+			float RandomSpawnAngle = FMath::FRandRange(0.0f, 360.0f);
+
 			// Get the camera transform.
 			const FRotator SpawnRotation(GetActorForwardVector().X, RandomSpawnAngle, GetActorForwardVector().Z);
 			FVector Offset(FMath::Cos(FMath::DegreesToRadians(RandomSpawnAngle)), FMath::Sin(FMath::DegreesToRadians(RandomSpawnAngle)), 0.0f);
@@ -257,14 +264,12 @@ void AMyEarthbender::createClone()
 
 			if (clone)
 			{
-				AbilityClones.Push(clone);
+				//AbilityClones.Push(clone);
 			}
-			
+
 		}
 	}
 
-=======
->>>>>>> parent of 1feb2f0 (Added effects to my rock throw and started next ability - sand clones)
 }
 
 /*void AMyEarthbender::UpdateRock()
@@ -333,26 +338,26 @@ bool AMyEarthbender::LineTraceMethod(FHitResult& OutHit)
 	}
 }
 
-UFUNCTION() void AMyEarthbender::MoveForward(float val)
+void AMyEarthbender::MoveForward(float val)
 {
 	// Find forward and record
 	FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::X);
 	AddMovementInput(GetActorForwardVector() * val);
 }
 
-UFUNCTION() void AMyEarthbender::MoveRight(float val)
+void AMyEarthbender::MoveRight(float val)
 {
 	// Find forward and record
 	FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::Y);
 	AddMovementInput(Direction, val);
 }
 
-UFUNCTION() void AMyEarthbender::StartJump()
+void AMyEarthbender::StartJump()
 {
 	bPressedJump = true;
 }
 
-UFUNCTION() void AMyEarthbender::StopJump()
+void AMyEarthbender::StopJump()
 {
 	bPressedJump = false;
 }

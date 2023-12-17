@@ -7,12 +7,8 @@ public class CMP302_GameMechanics : ModuleRules
 	public CMP302_GameMechanics(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
-	
-<<<<<<< HEAD
+        
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "Niagara", "AIModule" });
-=======
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore" });
->>>>>>> parent of 1feb2f0 (Added effects to my rock throw and started next ability - sand clones)
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
 
