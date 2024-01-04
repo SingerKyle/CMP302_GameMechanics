@@ -2,7 +2,16 @@
 
 
 #include "MyEarthbender.h"
+
+#include "MyEnemy.h"
 #include "Animation/AnimInstance.h"
+#include "Perception/AIPerceptionStimuliSourceComponent.h"
+#include "MyHUD.h"
+#include "AssetTypeActions/AssetDefinition_SoundBase.h"
+#include "Blueprint/UserWidget.h"
+#include "Components/BoxComponent.h"
+#include "Perception/AISense_Sight.h"
+
 
 // Sets default values
 AMyEarthbender::AMyEarthbender()
@@ -11,7 +20,6 @@ AMyEarthbender::AMyEarthbender()
 	PrimaryActorTick.bCanEverTick = true;
 
 	GetCapsuleComponent()->InitCapsuleSize(34.0f, 95.0f);
-
 	bodyMesh = GetMesh();
 
 	static ConstructorHelpers::FObjectFinder<USkeletalMesh> MeshAsset(TEXT("'/Game/ParagonGideon/Characters/Heroes/Gideon/Meshes/Gideon.Gideon'"));
@@ -66,18 +74,36 @@ AMyEarthbender::AMyEarthbender()
 		FPSArms->CastShadow = false;
 	}
 
+	static ConstructorHelpers::FObjectFinder<UAnimBlueprint> AnimationBlueprintFinder(TEXT("'/Game/ParagonGideon/Characters/Heroes/Gideon/Gideon_AnimBlueprint.Gideon_AnimBlueprint'"));
+	if (AnimationBlueprintFinder.Succeeded())
+	{
+		// Set the animation blueprint on the skeletal mesh component
+		bodyMesh->SetAnimInstanceClass(AnimationBlueprintFinder.Object->GeneratedClass);
+	}
+
+	armour = this->CreateDefaultSubobject<UMyRockArmour>(TEXT("Rock Armour"));
+	if (armour)
+	{
+		this->AddOwnedComponent(armour);
+	}
+
+	HUDClass = nullptr;
+	myHud = nullptr;
+
 
 	zOffset = BaseEyeHeight + 50.0f;
-	health = 100.0f;
+	setHealth(200);
+	setMana(200);
+	maxMana = getMana();
 }
 
 void AMyEarthbender::updateRock(float value)
 {
-	if (rockCurveFloat)
+	if (rockCurveFloat && HeldRock)
 	{
 		FVector newLocation = FMath::Lerp(startLocation, endLocation, value);
 		HeldRock->SetActorLocation(newLocation);
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Timeline Works!"));
+		//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Timeline Works!"));
 	}
 
 }
@@ -86,6 +112,16 @@ void AMyEarthbender::updateRock(float value)
 void AMyEarthbender::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (IsLocallyControlled() && HUDClass)
+	{
+		APlayerController* controller = GetWorld()->GetFirstPlayerController();
+		check(controller);
+		myHud = CreateWidget<UMyHUD>(controller, HUDClass);
+		check(myHud);
+		myHud->AddToPlayerScreen();
+		myHud->setHealth(getHealth(), getMaxHealth());
+	}
 
 	check(GEngine != nullptr);
 
@@ -104,6 +140,12 @@ void AMyEarthbender::BeginPlay()
 		timelineProgress.BindUFunction(this, FName("updateRock"));
 		rockTimeline.AddInterpFloat(rockCurveFloat, timelineProgress);
 	}
+
+	// Set hud icons.
+	FText abilityName = FText::FromString("Rock Throw");
+	myHud->setText(abilityName);
+	UTexture2D* abilityImage = LoadObject<UTexture2D>(nullptr, TEXT("'/Game/Blueprints/UI/thrown-charcoal.thrown-charcoal'"));
+	myHud->setImage(abilityImage);
 }
 
 // Called every frame
@@ -112,6 +154,17 @@ void AMyEarthbender::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	rockTimeline.TickTimeline(DeltaTime);
+
+	regenerateMana(DeltaTime, maxMana);
+
+	myHud->setMana(getMana(), maxMana);
+	myHud->setHealth(getHealth(), getMaxHealth());
+
+
+/*	if (bodyMesh->GetAnimInstance()->Montage_IsPlaying(stunMontage))
+	{
+		DisableInput(GetWorld()->GetFirstPlayerController());
+	}*/
 }
 
 // Called to bind functionality to input
@@ -172,7 +225,17 @@ void AMyEarthbender::powerPick()
 		CreateRock();
 		break;
 	case 2:
+		CreateArmour();
+	/*	bodyMesh = GetMesh();
 
+		if (bodyMesh->GetAnimInstance())
+		{
+			UAnimInstance* animInstance = bodyMesh->GetAnimInstance();
+
+			animInstance->Montage_Play(stunMontage, 1.0f);
+
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Animation should play!"));
+		}*/
 		break;
 	case 3:
 		createClone();
@@ -185,60 +248,68 @@ void AMyEarthbender::powerPick()
 
 void AMyEarthbender::CreateRock()
 {
-	// Attempt to fire a projectile.
-	if (ProjectileClass)
+	// check if you have enough mana
+	if (getMana() >= 25)
 	{
-		// Get the camera transform.
-		const FRotator SpawnRotation = GetControlRotation();
-		const FVector ActorForward = FVector(GetWorld()->GetFirstPlayerController()->GetPawn()->GetActorForwardVector() * FMath::RandRange(200.f, 400.f));
-		const FVector ActorLocation = GetWorld()->GetFirstPlayerController()->GetPawn()->GetActorLocation();
-		FVector SpawnLocation = ((ActorLocation + ActorForward));
-		SpawnLocation.Z = 0;
-
-		//const FVector SpawnLocation = (FVector(GetWorld()->GetFirstPlayerController()->GetPawn()->GetActorLocation().X, GetWorld()->GetFirstPlayerController()->GetPawn()->GetActorLocation().Y, GetWorld()->GetFirstPlayerController()->GetPawn()->GetActorLocation().Z) + SpawnRotation.RotateVector(FVector(200.0f, 0.0f, 0.0f)));
-		// Log the camera location and rotation.
-		//UE_LOG(LogTemp, Warning, TEXT("CameraLocation: %s"), *CameraLocation.ToString());
-
-		UWorld* World = GetWorld();
-		if (World)
+		// Attempt to fire a projectile.
+		if (ProjectileClass)
 		{
-			FActorSpawnParameters SpawnParams;
-			SpawnParams.Owner = this;
-			SpawnParams.Instigator = GetInstigator();
+			// Get the camera transform.
+			const FRotator SpawnRotation = GetControlRotation();
+			const FVector ActorForward = FVector(GetWorld()->GetFirstPlayerController()->GetPawn()->GetActorForwardVector() * FMath::RandRange(200.f, 400.f));
+			const FVector ActorLocation = GetWorld()->GetFirstPlayerController()->GetPawn()->GetActorLocation();
+			FVector SpawnLocation = ((ActorLocation + ActorForward));
+			SpawnLocation.Z = 0;
 
-			// Spawn the projectile at the muzzle.
-			HeldRock = World->SpawnActor<AMyRock>(ProjectileClass, SpawnLocation, SpawnRotation, SpawnParams);
-			//HeldRock->SetActorScale3D(FVector(2, 2, 2));
+			//const FVector SpawnLocation = (FVector(GetWorld()->GetFirstPlayerController()->GetPawn()->GetActorLocation().X, GetWorld()->GetFirstPlayerController()->GetPawn()->GetActorLocation().Y, GetWorld()->GetFirstPlayerController()->GetPawn()->GetActorLocation().Z) + SpawnRotation.RotateVector(FVector(200.0f, 0.0f, 0.0f)));
+			// Log the camera location and rotation.
+			//UE_LOG(LogTemp, Warning, TEXT("CameraLocation: %s"), *CameraLocation.ToString());
 
-				//rockTimeline.SetLooping(true);
-			if (rockCurveFloat)
+			UWorld* World = GetWorld();
+			if (World)
 			{
-				startLocation = endLocation = HeldRock->GetActorLocation();
-				endLocation.Z += zOffset;
-			}
+				FActorSpawnParameters SpawnParams;
+				SpawnParams.Owner = this;
+				SpawnParams.Instigator = GetInstigator();
 
-			if (HeldRock)
-			{
-				rockTimeline.PlayFromStart();
-				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Projectile Working!"));
-				UStaticMeshComponent* RockMeshComponent = HeldRock->RockMeshComponent;
-				if (RockMeshComponent)
+				// Spawn the projectile at the muzzle.
+				HeldRock = World->SpawnActor<AMyRock>(ProjectileClass, SpawnLocation, SpawnRotation, SpawnParams);
+				//GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::White, FString::Printf(TEXT("Current Mana (Rock Spawn): %.2f"), getMana()));
+				//HeldRock->SetActorScale3D(FVector(2, 2, 2));
+
+					//rockTimeline.SetLooping(true);
+				if (rockCurveFloat)
 				{
-					FBoxSphereBounds Bounds = RockMeshComponent->CalcBounds(RockMeshComponent->GetComponentTransform());
-
-					// Access the extent in each dimension
-					BoxExtentZ = Bounds.BoxExtent.Z * 2;
+					startLocation = endLocation = HeldRock->GetActorLocation();
+					endLocation.Z += zOffset;
 				}
-				//HeldRock->SetActorLocation(FVector(Projectile->GetActorLocation().X, Projectile->GetActorLocation().Y, -BoxExtentZ));
-				//HeldRocks.Push(HeldRock);
+
+				if (HeldRock)
+				{
+					rockTimeline.PlayFromStart();
+					GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Projectile Working!"));
+					manaChange(-25);
+					
+					heldRocks.Push(HeldRock);
+				}
 			}
 		}
 	}
 }
 
+void AMyEarthbender::CreateArmour()
+{
+	if(getMana() >= 100)
+	{
+		armour->SetActive(true);
+		manaChange(-100);
+
+	}
+}
+
 void AMyEarthbender::createClone()
 {
-	if (CloneClass)
+	if (CloneClass && getMana()>= 75)
 	{
 		UWorld* World = GetWorld();
 
@@ -264,7 +335,8 @@ void AMyEarthbender::createClone()
 
 			if (clone)
 			{
-				//AbilityClones.Push(clone);
+				manaChange(-75);
+				
 			}
 
 		}
@@ -285,7 +357,7 @@ void AMyEarthbender::createClone()
 
 void AMyEarthbender::ThrowRock()
 {
-	if (HeldRock)
+	if (!heldRocks.IsEmpty() && getMana() >= 10)
 	{
 		rockTimeline.Stop();
 
@@ -294,8 +366,23 @@ void AMyEarthbender::ThrowRock()
 		const FRotator SpawnRotation = GetControlRotation();
 		const FVector ThrowDirection = SpawnRotation.Vector();
 
-		// Call the FireInDirection function on the held rock to set its initial velocity.
-		HeldRock->FireInDirection(ThrowDirection);
+		if (heldRocks.Last() != nullptr)
+		{
+			// Call the FireInDirection function on the held rock to set its initial velocity.
+			heldRocks.Last()->FireInDirection(ThrowDirection);
+			manaChange(-10);
+		}
+
+		bodyMesh = GetMesh();
+
+		if (bodyMesh->GetAnimInstance())
+		{
+			UAnimInstance* animInstance = bodyMesh->GetAnimInstance();
+
+			animInstance->Montage_Play(getAttackMontage(), 1.0f);
+
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Animation should play!"));
+		}
 		//HeldRock = nullptr;
 		//bIsHoldingRock = false;
 	}
@@ -303,38 +390,93 @@ void AMyEarthbender::ThrowRock()
 
 float AMyEarthbender::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
-	health -= 50;
-	UE_LOG(LogTemp, Warning, TEXT("Health: %f"), health);
 
-	if (health <= 0)
+	if(armour->IsActive() == true)
+	{
+		healthChange(-getDamage() / 2);
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("ARMOUR ACTIVE!"));
+	}
+	else
+	{
+		healthChange(-getDamage());
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("ARMOUR NOT ACTIVE!"));
+	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("Health: %f"), getHealth());
+
+	if (getHealth() <= 0)
 	{
 		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Dead!"));
+		onDeath();
 	}
 
-	return 50.0f;
+	bodyMesh = GetMesh();
+
+	if (bodyMesh->GetAnimInstance())
+	{
+		UAnimInstance* animInstance = bodyMesh->GetAnimInstance();
+
+		animInstance->Montage_Play(getHurtMontage());
+
+		//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Animation should play!"));
+	}
+
+	// Calculate launch direction (backward)
+	FVector launchDirection = -GetActorForwardVector(); 
+
+	// Apply launch force
+	float launchForce = 15000.0f; // You can adjust this value
+
+	LaunchCharacter(launchDirection * launchForce, true, false);
+
+	return getDamage();
+}
+
+void AMyEarthbender::onDeath()
+{
+	GetWorld()->GetFirstPlayerController()->ConsoleCommand("quit");
 }
 
 void AMyEarthbender::setPower(int num)
 {
 	currentPower = num;
+	FText abilityName;
+	UTexture2D* abilityImage;
+	switch (num)
+	{
+	case 1:
+		abilityName = FText::FromString("Rock Throw");
+		myHud->setText(abilityName);
+		abilityImage = LoadObject<UTexture2D>(nullptr, TEXT("'/Game/Blueprints/UI/thrown-charcoal.thrown-charcoal'"));
+		myHud->setImage(abilityImage);
+		break;
+	case 2:
+		abilityName = FText::FromString("Rock Armour");
+		myHud->setText(abilityName);
+		abilityImage = LoadObject<UTexture2D>(nullptr, TEXT("'/Game/Blueprints/UI/rock-golem.rock-golem'"));
+		myHud->setImage(abilityImage);
+		break;
+	case 3:
+		abilityName = FText::FromString("Clone");
+		myHud->setText(abilityName);
+		abilityImage = LoadObject<UTexture2D>(nullptr, TEXT("'/Game/Blueprints/UI/backup.backup'"));
+		myHud->setImage(abilityImage);
+		break;
+	default:
+		abilityName = FText::FromString("None");
+		myHud->setText(abilityName);
+		break;
+	}
+	
 }
 
-bool AMyEarthbender::LineTraceMethod(FHitResult& OutHit)
+void AMyEarthbender::setupStimulus()
 {
-	if (FPSCameraComponent)
+	stimulus = CreateDefaultSubobject<UAIPerceptionStimuliSourceComponent>(TEXT("Player Stimulus"));
+	if (stimulus)
 	{
-		FVector CameraLocation = FPSCameraComponent->GetComponentLocation();
-		FVector CameraForward = FPSCameraComponent->GetForwardVector();
-
-		FVector StartPoint = CameraLocation;
-		FVector EndPoint = StartPoint + CameraForward + (CameraForward * GrabRange);
-
-		FCollisionQueryParams Parameters;
-		return GetWorld()->LineTraceSingleByChannel(OutHit, StartPoint, EndPoint, ECC_Visibility, Parameters);
-	}
-	else
-	{
-		return false;
+		stimulus->RegisterForSense(TSubclassOf<UAISense_Sight>());
+		stimulus->RegisterWithPerceptionSystem();
 	}
 }
 

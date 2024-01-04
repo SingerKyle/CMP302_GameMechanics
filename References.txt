@@ -1,3 +1,15 @@
+https://www.youtube.com/watch?v=0GQZ3bQKJUQ
+
+https://www.youtube.com/watch?v=T7v3UnL6PNU&t=405s
+
+https://www.youtube.com/playlist?list=PLWUvrI0mg8VLrvq3n2iu45lhCo69uluDK
+
+https://docs.unrealengine.com/5.2/en-US/
+
+https://forums.unrealengine.com/t/getting-input-key-time-down-in-c/386589/3
+
+https://forums.unrealengine.com/t/access-to-buseaccelerationforpaths-from-c/401046/2
+
 https://forums.unrealengine.com/t/how-to-add-and-remove-a-box-collision-component-in-c/70403/2
 
 https://docs.unrealengine.com/4.26/en-US/ProgrammingAndScripting/ProgrammingWithCPP/CPPTutorials/FirstPersonShooter/2/
@@ -51,3 +63,10 @@ https://www.youtube.com/watch?v=ppZvDKtWK50
 https://www.youtube.com/watch?v=-4Kl2FY1_-4
 
 https://awesometuts.com/blog/unreal-engine-enemy-ai/#elementor-toc__heading-anchor-8
+
+https://www.unrealengine.com/en-US/tech-blog/animation-blueprint-setup-walkthrough-stream-recap
+
+IMAGES:
+https://game-icons.net/1x1/lorc/thrown-charcoal.html
+https://game-icons.net/1x1/delapouite/rock-golem.html
+https://game-icons.net/1x1/lorc/backup.html

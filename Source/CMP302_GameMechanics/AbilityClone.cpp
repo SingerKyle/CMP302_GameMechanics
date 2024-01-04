@@ -4,9 +4,13 @@
 #include "AbilityClone.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "AIMovementComponent.h"
+#include "Perception/AISense_Sight.h"
+#include "Perception/AIPerceptionStimuliSourceComponent.h"
+#include "NavigationSystem.h"
 
 // Sets default values
-AAbilityClone::AAbilityClone()
+AAbilityClone::AAbilityClone(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer.SetDefaultSubobjectClass<UAIMovementComponent>(ACharacter::CharacterMovementComponentName))
 {
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -31,11 +35,8 @@ AAbilityClone::AAbilityClone()
 		CloneBody->SetRelativeRotation(FRotator(CloneBody->GetRelativeRotation().Pitch, -90.0f, CloneBody->GetRelativeRotation().Yaw));
 		CloneBody->SetupAttachment(RootComponent);
 	}
-
-
-
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
-
+	// set how long the clone is in the level
 	InitialLifeSpan = 10.f;
 }
 
@@ -48,9 +49,19 @@ void AAbilityClone::BeginPlay()
 	if (AIController)
 	{
 		AIController->Possess(this);
-		AIController->MoveToLocation(FVector(100, 100, 0), -1.0f, true, true, true);
-		CloneMove = UAITask_MoveTo::AIMoveTo(AIController, FVector(100, 100, 0), this);
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Running"));
+
+		AIController->MoveToLocation(handleMovement(), -1.0f, true, true, true);
+		//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Running"));
+	}
+}
+
+void AAbilityClone::setupStimulus()
+{
+	stimulus = CreateDefaultSubobject<UAIPerceptionStimuliSourceComponent>(TEXT("Player Stimulus"));
+	if (stimulus)
+	{
+		stimulus->RegisterForSense(TSubclassOf<UAISense_Sight>());
+		stimulus->RegisterWithPerceptionSystem();
 	}
 }
 
@@ -59,7 +70,20 @@ void AAbilityClone::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	//MoveForward(200);
+	FVector currentPos = GetActorLocation();
+	if (FVector::Dist(currentPos, navPos) <= 100.0f)
+	{
+		//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Distance together"));
+		AIController = GetController<AAIController>();
+		if (AIController)
+		{
+			//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Moving!"));
+			// generate new position if old position has been reached
+			AIController->MoveToLocation(handleMovement(), -1.0f, true, true, true);
+		}
+	}
+
+	//UE_LOG(LogTemp, Warning, TEXT("currentPos: %s, navPos: %s"), *currentPos.ToString(), *navPos.ToString());
 }
 
 void AAbilityClone::MoveForward(float val)
@@ -74,5 +98,23 @@ void AAbilityClone::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
+}
+
+FVector AAbilityClone::handleMovement()
+{
+	FVector startLocation = GetActorLocation();
+	// generate random location using navmesh
+	if (auto* const navMesh = UNavigationSystemV1::GetCurrent(GetWorld()))
+	{
+		FNavLocation newPos;
+		// sets a random position in navmesh from the start position in range set.
+		if (navMesh->GetRandomPointInNavigableRadius(startLocation, searchRange, newPos))
+		{
+			navPos = newPos.Location;
+			navPos.Z = GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+			return newPos;
+		}
+	}
+	return FVector(100, 100, 100);
 }
 

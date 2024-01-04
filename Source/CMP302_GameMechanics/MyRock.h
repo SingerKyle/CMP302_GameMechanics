@@ -24,16 +24,16 @@ public:
 	// Sets default values for this actor's properties
 	AMyRock();
 
-protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
-public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 	// Function that initializes the projectile's velocity in the shoot direction.
 	void FireInDirection(const FVector& ShootDirection);
-
+	// collision hit response
 	UFUNCTION() void OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
+
+protected:
+	// Called when the game starts or when spawned
+	virtual void BeginPlay() override;
 
 	// Sphere collision component.
 	UPROPERTY(VisibleAnywhere, Category = Projectile) USphereComponent* CollisionComponent;
@@ -49,4 +49,9 @@ public:
 	//Array of Static Meshes
 	UPROPERTY(EditAnywhere, Category = Rock) TArray<UStaticMesh*> RockMeshes;
 	bool atHeight = false;
+	// Timer
+	float timer = 0;
+
+	//Audio
+	UPROPERTY(EditAnywhere, Category = "Audio") class USoundBase* throwSound;
 };

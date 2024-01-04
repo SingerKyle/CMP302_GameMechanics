@@ -1,11 +1,16 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "MyRock.h"
+
+#include "MyEnemy.h"
 #include "Curves/CurveFloat.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
 #include "NiagaraComponent.h"
+#include "AssetTypeActions/AssetDefinition_SoundBase.h"
+#include "Engine/DamageEvents.h"
 #include "Kismet/GameplayStatics.h"
+#include "Sound/SoundBase.h"
 
 // Sets default values
 AMyRock::AMyRock()
@@ -92,7 +97,14 @@ AMyRock::AMyRock()
 	}
 
 	// Delete the projectile after 3 seconds.
-	InitialLifeSpan = 4.0f;
+	InitialLifeSpan = 6.0f;
+
+	// audio
+	static ConstructorHelpers::FObjectFinder<USoundBase> rockSound(TEXT("/Game/Audio/RockSmash.RockSmash"));
+	if (rockSound.Succeeded())
+	{
+		throwSound = rockSound.Object;
+	}
 }
 
 
@@ -115,6 +127,23 @@ void AMyRock::BeginPlay()
 void AMyRock::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	timer += DeltaTime;
+	if (timer >= 4)
+	{
+		RockMeshComponent->SetSimulatePhysics(true);
+		RockMeshComponent->SetCollisionProfileName("QueryAndPhysics");
+		RockMeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		RockMeshComponent->SetNotifyRigidBodyCollision(true);
+		CollisionComponent->SetSimulatePhysics(true);
+		CollisionComponent->SetCollisionProfileName("QueryAndPhysics");
+		CollisionComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		CollisionComponent->SetNotifyRigidBodyCollision(true);
+		RootComponent = CollisionComponent;
+		timer = 0;
+	}
+	
+	
 }
 
 // Function that initializes the projectile's velocity in the shoot direction.
@@ -149,9 +178,20 @@ void AMyRock::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrim
 		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), RockParticle, GetActorLocation());
 	}
 
+	float volumeMultiplier = 0.5f;
+	UGameplayStatics::PlaySoundAtLocation(this, throwSound, GetActorLocation(), FRotator::ZeroRotator, volumeMultiplier);
 	Destroy();
 
-	GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Cyan, TEXT("test"));
+	AMyEnemy* enemy = Cast<AMyEnemy>(OtherActor);
+	if (enemy)
+	{
+		// DAMAGE OR WHATEVER
+		//enemy->healthChange(-200);
+		FDamageEvent damagevent;
+		damagevent.DamageTypeClass = UDamageType::StaticClass();
+		APlayerController* controller = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+		enemy->TakeDamage(100, damagevent, nullptr , controller->GetPawn());
+	}
 
 	if ((OtherActor != NULL) && (OtherActor != this) && (OtherComp != NULL))
 	{

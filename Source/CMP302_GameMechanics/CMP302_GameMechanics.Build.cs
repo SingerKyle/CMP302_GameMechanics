@@ -8,7 +8,7 @@ public class CMP302_GameMechanics : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
         
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "Niagara", "AIModule" });
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "Niagara", "AIModule", "GameplayTasks", "NavigationSystem", "UMG" });
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
 

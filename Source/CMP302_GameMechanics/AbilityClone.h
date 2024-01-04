@@ -1,5 +1,4 @@
 // Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -18,6 +17,7 @@
 #include "Components/CapsuleComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "PhysicsEngine/PhysicsHandleComponent.h"
+#include "MyBTTask_RandomPosition.h"
 #include "AbilityClone.generated.h"
 
 UCLASS()
@@ -27,20 +27,7 @@ class CMP302_GAMEMECHANICS_API AAbilityClone : public ACharacter
 
 public:
 	// Sets default values for this character's properties
-	AAbilityClone();
-
-	// First-Person Arms
-	UPROPERTY(VisibleDefaultsOnly, Category = Mesh) USkeletalMeshComponent* CloneBody;
-	UPROPERTY(VisibleDefaultsOnly, Category = Mesh) UCapsuleComponent* CollisionCapsule;
-	UPROPERTY(VisibleDefaultsOnly, Category = Animation) UAnimBlueprint* animation;
-
-protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
-
-	UPROPERTY() UAITask_MoveTo* CloneMove;
-	UPROPERTY() class AAIController* AIController;
-public:	
+	AAbilityClone(const FObjectInitializer& ObjectInitializer);
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 	// handles backward and forward movement
@@ -49,4 +36,24 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+	FVector handleMovement();
+
+protected:
+	// Called when the game starts or when spawned
+	virtual void BeginPlay() override;
+
+	UPROPERTY() class AAIController* AIController;
+	// body
+	UPROPERTY(VisibleDefaultsOnly, Category = Mesh) USkeletalMeshComponent* CloneBody;
+	// collision component
+	UPROPERTY(VisibleDefaultsOnly, Category = Mesh) UCapsuleComponent* CollisionCapsule;
+	UPROPERTY(VisibleDefaultsOnly, Category = Animation) UAnimBlueprint* animation;
+	// range for movement
+	UPROPERTY(EditAnywhere, Category = "Clone Movement") float searchRange = 1500.0f;
+	UPROPERTY(EditAnywhere, Category = "Clone Movement") FVector navPos;
+
+private:
+	class UAIPerceptionStimuliSourceComponent* stimulus;
+
+	void setupStimulus();
 };
